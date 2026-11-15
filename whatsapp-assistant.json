@@ -1,0 +1,667 @@
+{
+  "name": "AI Dental Clinic WhatsApp Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $json.output.replace('[HANDOFF]', '').trim() }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1312,
+        -496
+      ],
+      "id": "22c276ba-3ce4-4c19-801e-6382725b0d4e",
+      "name": "Send message"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8d0e2d86-f1a8-4938-a068-7a64a9d56e9c",
+      "name": "WhatsApp Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.user_text }}",
+        "options": {
+          "systemMessage": "You are the WhatsApp assistant for Bright Smile Dental Clinic.\nBe friendly, polite, and brief. Replies should be 1-3 short sentences, suitable for WhatsApp.\nReply in the same language the customer uses.\nOnly answer questions about the clinic's services, timings, prices, and appointments.\nIf you don't know the answer, say you'll connect them with a staff member. Never make up prices or information .Always use the clinic_faq tool before answering any question about the clinic. Only use information from that tool.If the message starts with [Voice note], the customer spoke it. Understand it naturally even if the transcription has small mistakes, and reply in short, simple sentences. If the customer asks to talk to a human or staff member, wants to book, change or cancel an appointment, describes an emergency, or asks something you cannot find in the clinic_faq tool, reply politely that a staff member will contact them shortly, and add [HANDOFF] at the very end of your reply."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        928,
+        -352
+      ],
+      "id": "b9af877d-7152-4bec-9830-80011eb6ae42",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "has-message",
+              "leftValue": "={{ $json.messages?.[0]?.from ?? '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "f832d7b5-bd1a-474b-9ffc-c5782efca225",
+      "name": "Has incoming message?"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        -176
+      ],
+      "id": "18256b52-cf82-4c63-9138-8d79938b297c",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        992,
+        -160
+      ],
+      "id": "34a647d4-b82e-485f-a152-be32d29352c5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        64
+      ],
+      "id": "6fc72e20-b58d-421e-8c53-edae4d1e7645",
+      "name": "Embeddings Google Gemini"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('WhatsApp Trigger').item.json.messages[0].type }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "233cce47-a82e-4c93-8de5-45b57faf2bf1"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "048a8aef-48a3-46a6-806b-eb72f9866e83",
+                    "leftValue": "={{ $('WhatsApp Trigger').item.json.messages[0].type }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "06ecffc0-f31a-41ba-88da-4dd24fbd09f9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8d0cd56e-29bb-454d-a092-eeaaafc9b02c",
+              "name": "user_text",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "af499dd8-f3cd-4655-8062-debb9c7611bb",
+              "name": "message_type",
+              "value": "text",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        720,
+        -432
+      ],
+      "id": "726a2e23-dd30-475c-9ac7-88a6bee704e5",
+      "name": "Text message"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('WhatsApp Trigger').item.json.messages[0].audio.id }}"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        160
+      ],
+      "id": "af632ace-51ba-4310-b047-fdfb0a3bfaf3",
+      "name": "Get audio URL"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        784,
+        224
+      ],
+      "id": "751228b7-a53c-48c7-b059-d72609af8ffe",
+      "name": "Download audio"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-3.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-3.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        256
+      ],
+      "id": "08862bac-13fc-4359-ad62-c7dc579fce10",
+      "name": "Transcribe"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d5ed6bf4-9bb6-473e-96c9-3c4320caba27",
+              "name": "user_text",
+              "value": "=[Voice note]{{ $json.content.parts[0].text }}",
+              "type": "string"
+            },
+            {
+              "id": "e135a5f4-6cf0-4959-ba52-77f03102204c",
+              "name": "message_type",
+              "value": "audio",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1152,
+        256
+      ],
+      "id": "f189f360-28ad-4a33-835d-63e792f784e2",
+      "name": "Voice message"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
+            "Phone": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+            "Message Type": "={{ $('WhatsApp Trigger').item.json.messages[0].type }}",
+            "Customer Message": "={{ $('Text message').isExecuted ? $('Text message').item.json.user_text : $('Voice message').item.json.user_text }}",
+            "Bot Reply": "={{ $('AI Agent').item.json.output.replace('[HANDOFF]', '').trim() }}",
+            "Needs Human": "={{ $('AI Agent').item.json.output.includes('[HANDOFF]') ? 'Yes' : 'No' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Message Type",
+              "displayName": "Message Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Message",
+              "displayName": "Customer Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Bot Reply",
+              "displayName": "Bot Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Needs Human",
+              "displayName": "Needs Human",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        -496
+      ],
+      "id": "c7db4d7d-520f-4771-82a5-c8eae5367613",
+      "name": "Log conversation"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e5ff23b0-d770-4408-87ee-aecc8503e188",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "[HANDOFF]",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1408,
+        -256
+      ],
+      "id": "75cd22ed-47a2-48ec-90e8-8543422f6448",
+      "name": "Needs human?"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_STAFF_WHATSAPP_NUMBER",
+        "textBody": "=🔔 Customer needs a staff member  Phone: {{ $('WhatsApp Trigger').item.json.messages[0].from }} Customer said: {{ $('Text message').isExecuted ? $('Text message').item.json.user_text : $('Voice message').item.json.user_text }} Bot replied: {{ $('AI Agent').item.json.output.replace('[HANDOFF]', '').trim() }}  Chat with them: https://wa.me/{{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1632,
+        -352
+      ],
+      "id": "68a688ba-7242-4020-ac96-f9ac52a83b69",
+      "name": "Alert staff"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this to find information about the clinic's services, prices, timings, doctors, address and appointment rules.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        -160
+      ],
+      "id": "d6994c76-747e-48ce-ba59-399fc2f1428c",
+      "name": "clinic_faq"
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has incoming message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        [
+          {
+            "node": "Log conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Needs human?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "clinic_faq",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get audio URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text message": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get audio URL": {
+      "main": [
+        [
+          {
+            "node": "Download audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Voice message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Voice message": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs human?": {
+      "main": [
+        [
+          {
+            "node": "Alert staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clinic_faq": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has incoming message?": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Karachi",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
