@@ -2,7 +2,6 @@
 
 An AI-powered WhatsApp assistant for a dental clinic, built with **n8n**. It answers patient questions 24/7 using the clinic's own FAQ, understands voice notes, remembers the conversation, logs every chat to Google Sheets, and alerts staff on WhatsApp when a human is needed.
 
-> Built with demo clinic data ("Bright Smile Dental Clinic"). Swap in a real clinic's FAQ to use it in production.
 
 ## Features
 
@@ -51,6 +50,3 @@ n8n · Google Gemini (chat, embeddings, transcription) · Supabase (pgvector) ·
    - `Log conversation`: set your Google Sheet ID (columns: `Timestamp, Phone, Message Type, Customer Message, Bot Reply, Needs Human`)
 6. **Activate** the assistant workflow and send it a WhatsApp message to test.
 
-## Security
-
-No API keys, credentials, phone numbers, or sheet IDs are included in this repository. Placeholders like `YOUR_GOOGLE_SHEET_ID` mark the values you need to fill in.
